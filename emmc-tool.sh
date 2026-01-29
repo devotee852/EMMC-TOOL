@@ -502,11 +502,10 @@ run_detection() {
     
     # 获取设备信息
     echo -e "\n${GREEN}════════════ 设备信息 ═════════════${NC}"
-    # 已去除设备路径显示
     
     IFS=$'\n' read -r -d '' -a device_info < <(get_device_info "$EMMC_DEVICE")
     for info in "${device_info[@]}"; do
-        echo -e "${WHITE}  ${info}${NC}"
+        echo -e "${WHITE}  $info${NC}"
     done
     
     # 读取寿命信息
