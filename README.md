@@ -6,10 +6,10 @@ EMMC寿命检测工具
 
 
 使用方法:
-  1. 或输入: emmc
+  1. 命令行输入: emmc
 
 卸载方法:
-  sudo /usr/local/bin/emmc_health uninstall
+  sudo ./emmc-tool.sh uninstall
 
 
 安装完命令行输入emmc，可显示功能列表操作更简单
