@@ -37,7 +37,7 @@ show_help() {
 find_emmc_device() {
     local found_device=""
     
-    echo -e "${CYAN}正在扫描EMMC设备...${NC}"
+    echo -e "${CYAN}正在扫描EMMC设备...${NC}" >&2
     
     # 查找/sys/block下所有块设备
     for device in /sys/block/mmcblk*; do
@@ -49,16 +49,16 @@ find_emmc_device() {
                 # 如果找到life_time文件，则直接使用
                 if [ -f "$device/device/life_time" ]; then
                     found_device="$device_name"
-                    echo -e "${GREEN}✓ 找到EMMC设备: /dev/$device_name${NC}"
-                    echo -e "${BLUE}  路径: $device/device/life_time${NC}"
+                    echo -e "${GREEN}✓ 找到EMMC设备: /dev/$device_name${NC}" >&2
+                    echo -e "${BLUE}  路径: $device/device/life_time${NC}" >&2
                     break
                 else
                     # 如果没有life_time文件，但可能是EMMC设备，检查设备类型
                     if [ -f "$device/device/type" ]; then
                         device_type=$(cat "$device/device/type" 2>/dev/null)
                         if [ "$device_type" = "MMC" ] || [ "$device_type" = "SD" ] || [[ "$device_name" == mmcblk* ]]; then
-                            echo -e "${YELLOW}⚠ 找到可能设备: /dev/$device_name (类型: ${device_type:-未知})${NC}"
-                            echo -e "${YELLOW}  但未找到life_time文件，继续搜索...${NC}"
+                            echo -e "${YELLOW}⚠ 找到可能设备: /dev/$device_name (类型: ${device_type:-未知})${NC}" >&2
+                            echo -e "${YELLOW}  但未找到life_time文件，继续搜索...${NC}" >&2
                             # 不设置found_device，继续查找
                         fi
                     fi
@@ -73,39 +73,41 @@ find_emmc_device() {
         for device in /sys/block/sd*; do
             if [ -d "$device" ]; then
                 device_name=$(basename "$device")
-                echo -e "${YELLOW}找到存储设备: /dev/$device_name (可能是SD卡或USB设备)${NC}"
+                echo -e "${YELLOW}找到存储设备: /dev/$device_name (可能是SD卡或USB设备)${NC}" >&2
             fi
         done
         
         # 列出所有可用的块设备
-        echo -e "\n${CYAN}可用的块设备列表:${NC}"
-        ls -la /sys/block/ 2>/dev/null | grep -E "^(d|l)" | awk '{print "  " $9}'
+        echo -e "\n${CYAN}可用的块设备列表:${NC}" >&2
+        ls -la /sys/block/ 2>/dev/null | grep -E "^(d|l)" | awk '{print "  " $9}' >&2
         
-        echo -e "\n${RED}错误: 未找到支持寿命检测的EMMC设备${NC}"
-        echo -e "${YELLOW}可能的原因:${NC}"
-        echo -e "1. 系统中没有EMMC设备"
-        echo -e "2. 设备不支持寿命检测功能"
-        echo -e "3. 内核版本过旧，不支持life_time接口"
-        echo -e "4. 设备驱动不支持此功能"
-        echo -e "\n${YELLOW}您可以尝试:${NC}"
-        echo -e "1. 检查设备是否正确连接"
-        echo -e "2. 检查内核是否支持EMMC寿命检测"
-        echo -e "3. 查看是否有其他mmc设备: ls /dev/mmc*"
-        echo -e "4. 尝试手动指定设备路径"
+        echo -e "\n${RED}错误: 未找到支持寿命检测的EMMC设备${NC}" >&2
+        echo -e "${YELLOW}可能的原因:${NC}" >&2
+        echo -e "1. 系统中没有EMMC设备" >&2
+        echo -e "2. 设备不支持寿命检测功能" >&2
+        echo -e "3. 内核版本过旧，不支持life_time接口" >&2
+        echo -e "4. 设备驱动不支持此功能" >&2
+        
+        echo -e "\n${YELLOW}您可以尝试:${NC}" >&2
+        echo -e "1. 检查设备是否正确连接" >&2
+        echo -e "2. 检查内核是否支持EMMC寿命检测" >&2
+        echo -e "3. 查看是否有其他mmc设备: ls /dev/mmc*" >&2
+        echo -e "4. 尝试手动指定设备路径" >&2
         
         # 提示用户手动输入设备路径
-        echo -e "\n${CYAN}是否要手动指定设备路径? (y/N)${NC}"
+        echo -e "\n${CYAN}是否要手动指定设备路径? (y/N)${NC}" >&2
         read -r response
+        
         if [[ "$response" =~ ^[Yy]$ ]]; then
-            echo -e "${CYAN}请输入设备名称 (如: mmcblk0, mmcblk1):${NC}"
+            echo -e "${CYAN}请输入设备名称 (如: mmcblk0, mmcblk1):${NC}" >&2
             read -r manual_device
             
             if [[ "$manual_device" =~ ^mmcblk[0-9]+$ ]] && [ -d "/sys/block/$manual_device" ]; then
                 found_device="$manual_device"
-                echo -e "${GREEN}✓ 使用手动指定的设备: /dev/$found_device${NC}"
+                echo -e "${GREEN}✓ 使用手动指定的设备: /dev/$found_device${NC}" >&2
             else
-                echo -e "${RED}错误: 设备 '$manual_device' 不存在或格式不正确${NC}"
-                echo -e "${YELLOW}设备名称应该类似于: mmcblk0, mmcblk1${NC}"
+                echo -e "${RED}错误: 设备 '$manual_device' 不存在或格式不正确${NC}" >&2
+                echo -e "${YELLOW}设备名称应该类似于: mmcblk0, mmcblk1${NC}" >&2
                 exit 1
             fi
         else
@@ -202,25 +204,25 @@ get_user_shell_files() {
 reload_shell_config() {
     local user_home="$1"
     
-    echo -e "${YELLOW}正在自动重新加载shell配置...${NC}"
+    echo -e "${YELLOW}正在自动重新加载shell配置...${NC}" >&2
     
     # 获取所有可能的shell配置文件
     IFS=' ' read -r -a config_files <<< "$(get_user_shell_files "$user_home")"
     
     for config_file in "${config_files[@]}"; do
         if [ -f "$config_file" ]; then
-            echo -e "${BLUE}加载配置文件: $config_file${NC}"
+            echo -e "${BLUE}加载配置文件: $config_file${NC}" >&2
             # 尝试重新加载配置文件
             if [[ "$config_file" == *.bashrc ]] || [[ "$config_file" == *.bash_profile ]] || [[ "$config_file" == *.profile ]]; then
                 # 对于当前shell重新加载
                 if [ -n "$BASH_VERSION" ]; then
                     # 如果是bash shell，则重新加载
-                    source "$config_file" 2>/dev/null && echo -e "${GREEN}✓ 已重新加载 $config_file${NC}"
+                    source "$config_file" 2>/dev/null && echo -e "${GREEN}✓ 已重新加载 $config_file${NC}" >&2
                 fi
             elif [[ "$config_file" == *.zshrc ]]; then
                 # 对于zsh shell
                 if [ -n "$ZSH_VERSION" ]; then
-                    source "$config_file" 2>/dev/null && echo -e "${GREEN}✓ 已重新加载 $config_file${NC}"
+                    source "$config_file" 2>/dev/null && echo -e "${GREEN}✓ 已重新加载 $config_file${NC}" >&2
                 fi
             fi
         fi
@@ -229,8 +231,8 @@ reload_shell_config() {
     # 设置立即生效的别名（对当前会话有效）
     alias emmc="sudo $INSTALL_PATH run" 2>/dev/null
     
-    echo -e "${GREEN}✓ Shell配置已自动重新加载${NC}"
-    echo -e "${CYAN}您现在可以直接在终端输入 'emmc' 运行检测工具${NC}"
+    echo -e "${GREEN}✓ Shell配置已自动重新加载${NC}" >&2
+    echo -e "${CYAN}您现在可以直接在终端输入 'emmc' 运行检测工具${NC}" >&2
 }
 
 # 检查root权限
@@ -505,6 +507,8 @@ run_detection() {
     
     # 自动检测EMMC设备
     echo -e "\n${GREEN}════════════ 设备检测 ═════════════${NC}"
+    
+    # 调用函数获取设备名称
     EMMC_DEVICE=$(find_emmc_device)
     
     if [ -z "$EMMC_DEVICE" ]; then
