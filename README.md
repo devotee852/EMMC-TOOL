@@ -15,4 +15,5 @@ EMMC寿命检测工具
 安装完命令行输入emmc，可显示功能列表操作更简单
 
 
-![Uploading QQ截图20260129132854.png…]()
+
+<img width="1142" height="490" alt="QQ截图20260129132854" src="https://github.com/user-attachments/assets/82fb7cda-8d6f-4811-97e8-b4609a29f396" />
