@@ -34,6 +34,66 @@ show_help() {
     echo -e "注意: 需要root权限执行安装和卸载"
 }
 
+# 获取当前用户的shell配置文件
+get_user_shell_files() {
+    local user_home="$1"
+    local shell_configs=()
+    
+    # 检查不同shell的配置文件
+    if [ -f "$user_home/.bashrc" ]; then
+        shell_configs+=("$user_home/.bashrc")
+    fi
+    
+    if [ -f "$user_home/.bash_profile" ]; then
+        shell_configs+=("$user_home/.bash_profile")
+    fi
+    
+    if [ -f "$user_home/.profile" ]; then
+        shell_configs+=("$user_home/.profile")
+    fi
+    
+    if [ -f "$user_home/.zshrc" ]; then
+        shell_configs+=("$user_home/.zshrc")
+    fi
+    
+    echo "${shell_configs[@]}"
+}
+
+# 自动重新加载用户shell配置
+reload_shell_config() {
+    local user_home="$1"
+    
+    echo -e "${YELLOW}正在自动重新加载shell配置...${NC}"
+    
+    # 获取所有可能的shell配置文件
+    IFS=' ' read -r -a config_files <<< "$(get_user_shell_files "$user_home")"
+    
+    for config_file in "${config_files[@]}"; do
+        if [ -f "$config_file" ]; then
+            echo -e "${BLUE}加载配置文件: $config_file${NC}"
+            # 尝试重新加载配置文件
+            if [[ "$config_file" == *.bashrc ]] || [[ "$config_file" == *.bash_profile ]] || [[ "$config_file" == *.profile ]]; then
+                # 对于当前shell重新加载
+                if [ -n "$BASH_VERSION" ]; then
+                    # 如果是bash shell，则重新加载
+                    source "$config_file" 2>/dev/null && echo -e "${GREEN}✓ 已重新加载 $config_file${NC}"
+                fi
+            elif [[ "$config_file" == *.zshrc ]]; then
+                # 对于zsh shell
+                if [ -n "$ZSH_VERSION" ]; then
+                    source "$config_file" 2>/dev/null && echo -e "${GREEN}✓ 已重新加载 $config_file${NC}"
+                fi
+            fi
+        fi
+    done
+    
+    # 设置立即生效的别名（对当前会话有效）
+    alias emmc="sudo $INSTALL_PATH run" 2>/dev/null
+    
+    echo -e "${GREEN}✓ Shell配置已自动重新加载${NC}"
+    echo -e "${CYAN}您现在可以直接在终端输入 'emmc' 运行检测工具${NC}"
+}
+
 # 检查root权限
 check_root() {
     if [[ $EUID -ne 0 ]]; then
@@ -53,14 +113,85 @@ install_script() {
     cp "$0" "$INSTALL_PATH"
     chmod +x "$INSTALL_PATH"
     
+    # 获取当前用户（可能是通过sudo执行）
+    if [ -n "$SUDO_USER" ]; then
+        CURRENT_USER="$SUDO_USER"
+    else
+        CURRENT_USER="$USER"
+    fi
+    
+    # 获取用户家目录
+    USER_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
+    
+    if [ -z "$USER_HOME" ]; then
+        USER_HOME="$HOME"
+    fi
+    
+    echo -e "${BLUE}为用户 $CURRENT_USER ($USER_HOME) 安装...${NC}"
+    
+    # 检查用户的默认shell
+    USER_SHELL=$(getent passwd "$CURRENT_USER" | cut -d: -f7)
+    echo -e "${BLUE}用户默认shell: $USER_SHELL${NC}"
+    
     # 创建别名（如果bashrc中不存在）
-    if ! grep -q "alias $SCRIPT_NAME" ~/.bashrc 2>/dev/null; then
-        echo "alias $SCRIPT_NAME='sudo $INSTALL_PATH run'" >> ~/.bashrc
+    BASHRC="$USER_HOME/.bashrc"
+    
+    if [ -f "$BASHRC" ]; then
+        if ! grep -q "alias $SCRIPT_NAME" "$BASHRC"; then
+            echo "" >> "$BASHRC"
+            echo "# EMMC寿命检测工具别名" >> "$BASHRC"
+            echo "alias $SCRIPT_NAME='sudo $INSTALL_PATH run'" >> "$BASHRC"
+            echo -e "${GREEN}✓ 已添加别名到 $BASHRC${NC}"
+        else
+            echo -e "${YELLOW}✓ 别名已存在于 $BASHRC${NC}"
+        fi
+    else
+        # 如果.bashrc不存在，创建它
+        echo "# EMMC寿命检测工具别名" > "$BASHRC"
+        echo "alias $SCRIPT_NAME='sudo $INSTALL_PATH run'" >> "$BASHRC"
+        chown "$CURRENT_USER:$CURRENT_USER" "$BASHRC"
+        echo -e "${GREEN}✓ 已创建 $BASHRC 并添加别名${NC}"
+    fi
+    
+    # 也添加到.bash_profile（如果存在）
+    BASH_PROFILE="$USER_HOME/.bash_profile"
+    if [ -f "$BASH_PROFILE" ]; then
+        if ! grep -q "alias $SCRIPT_NAME" "$BASH_PROFILE"; then
+            echo "" >> "$BASH_PROFILE"
+            echo "# EMMC寿命检测工具别名" >> "$BASH_PROFILE"
+            echo "alias $SCRIPT_NAME='sudo $INSTALL_PATH run'" >> "$BASH_PROFILE"
+            echo -e "${GREEN}✓ 已添加别名到 $BASH_PROFILE${NC}"
+        fi
+    fi
+    
+    # 也添加到.profile（如果存在）
+    PROFILE="$USER_HOME/.profile"
+    if [ -f "$PROFILE" ] && [ ! -f "$BASH_PROFILE" ]; then
+        if ! grep -q "alias $SCRIPT_NAME" "$PROFILE"; then
+            echo "" >> "$PROFILE"
+            echo "# EMMC寿命检测工具别名" >> "$PROFILE"
+            echo "alias $SCRIPT_NAME='sudo $INSTALL_PATH run'" >> "$PROFILE"
+            echo -e "${GREEN}✓ 已添加别名到 $PROFILE${NC}"
+        fi
+    fi
+    
+    # 创建全局符号链接（可选）
+    if [ ! -f "/usr/bin/$SCRIPT_NAME" ]; then
+        ln -sf "$INSTALL_PATH" "/usr/bin/$SCRIPT_NAME" 2>/dev/null
+        echo -e "${GREEN}✓ 已创建全局符号链接${NC}"
     fi
     
     echo -e "${GREEN}安装完成!${NC}"
-    echo -e "请重新打开终端或执行: ${YELLOW}source ~/.bashrc${NC}"
-    echo -e "然后输入 ${YELLOW}emmc${NC} 来运行检测工具"
+    
+    # 自动重新加载shell配置
+    reload_shell_config "$USER_HOME"
+    
+    # 显示使用方法
+    echo -e "\n${CYAN}════════════ 使用方法 ════════════${NC}"
+    echo -e "${WHITE}1. 在当前终端直接输入: ${GREEN}emmc${NC}"
+    echo -e "${WHITE}2. 或运行: ${GREEN}sudo $INSTALL_PATH run${NC}"
+    echo -e "${WHITE}3. 关闭终端重新打开后，输入 ${GREEN}emmc${NC} 也可以使用"
+    echo -e "${CYAN}═══════════════════════════════════${NC}"
 }
 
 # 卸载脚本
@@ -69,19 +200,49 @@ uninstall_script() {
     
     echo -e "${YELLOW}正在卸载EMMC检测工具...${NC}"
     
+    # 获取当前用户
+    if [ -n "$SUDO_USER" ]; then
+        CURRENT_USER="$SUDO_USER"
+    else
+        CURRENT_USER="$USER"
+    fi
+    
+    # 获取用户家目录
+    USER_HOME=$(getent passwd "$CURRENT_USER" | cut -d: -f6)
+    if [ -z "$USER_HOME" ]; then
+        USER_HOME="$HOME"
+    fi
+    
     # 删除安装的文件
     if [ -f "$INSTALL_PATH" ]; then
         rm -f "$INSTALL_PATH"
-        echo -e "已删除: $INSTALL_PATH"
+        echo -e "${GREEN}✓ 已删除: $INSTALL_PATH${NC}"
     fi
     
-    # 删除别名
-    if [ -f ~/.bashrc ]; then
-        sed -i "/alias $SCRIPT_NAME/d" ~/.bashrc
+    # 删除全局符号链接
+    if [ -f "/usr/bin/$SCRIPT_NAME" ]; then
+        rm -f "/usr/bin/$SCRIPT_NAME"
+        echo -e "${GREEN}✓ 已删除全局符号链接${NC}"
     fi
     
-    echo -e "${GREEN}卸载完成!${NC}"
-    echo -e "请重新打开终端使更改生效"
+    # 从用户配置文件中删除别名
+    for config_file in "$USER_HOME/.bashrc" "$USER_HOME/.bash_profile" "$USER_HOME/.profile" "$USER_HOME/.zshrc"; do
+        if [ -f "$config_file" ]; then
+            if grep -q "alias $SCRIPT_NAME" "$config_file"; then
+                # 删除别名行
+                sed -i "/alias $SCRIPT_NAME/d" "$config_file"
+                # 删除空行和注释
+                sed -i "/^# EMMC寿命检测工具别名$/d" "$config_file"
+                echo -e "${GREEN}✓ 已从 $config_file 中移除别名${NC}"
+            fi
+        fi
+    done
+    
+    # 自动重新加载shell配置
+    reload_shell_config "$USER_HOME"
+    
+    echo -e "\n${GREEN}卸载完成!${NC}"
+    echo -e "${YELLOW}注意: 您可能需要关闭并重新打开终端以使更改完全生效${NC}"
 }
 
 # 获取设备信息
