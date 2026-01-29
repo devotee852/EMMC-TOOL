@@ -9,7 +9,7 @@ SCRIPT_NAME="emmc_health"
 INSTALL_PATH="/usr/local/bin/$SCRIPT_NAME"
 VERSION="1.0"
 
-# 颜色定义
+# 颜色定义（用于其他部分，进度条不使用颜色）
 RED='\033[1;31m'
 GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
@@ -18,7 +18,6 @@ MAGENTA='\033[1;35m'
 CYAN='\033[1;36m'
 WHITE='\033[1;37m'
 NC='\033[0m' # 无颜色
-BOLD='\033[1m'
 
 # 进度条字符
 BAR_CHAR_FILL="█"
@@ -132,7 +131,7 @@ parse_life_time() {
     echo "$used_hex $total_hex $used_dec $total_dec $percentage $status_key"
 }
 
-# 显示进度条
+# 显示进度条（无颜色）
 show_progress_bar() {
     local percentage=$1
     local bar_width=50
@@ -149,17 +148,8 @@ show_progress_bar() {
     done
     bar+="]"
     
-    # 选择颜色
-    local bar_color="$GREEN"
-    if [[ $percentage -ge 50 ]]; then
-        bar_color="$YELLOW"
-    fi
-    if [[ $percentage -ge 70 ]]; then
-        bar_color="$RED"
-    fi
-    
-    echo -n "健康度: ${bar_color}$bar${NC} "
-    echo -e "${bar_color}${percentage}%${NC}"
+    # 显示进度条，无颜色代码
+    echo "健康度: $bar ${percentage}%"
 }
 
 # 显示EMMC信息
@@ -216,8 +206,8 @@ show_emmc_info() {
         
         # 显示原始值
         print_color "寿命原始值: $life_time_raw" "$MAGENTA"
-        print_color "已用寿命:   $used_hex (十进制: $used_dec%)" "$MAGENTA"
-        print_color "总寿命:     $total_hex (十进制: $total_dec%)" "$MAGENTA"
+        print_color "已用寿命:   $used_hex (十进制: $used_dec)" "$MAGENTA"
+        print_color "总寿命:     $total_hex (十进制: $total_dec)" "$MAGENTA"
         
         print_separator
         
@@ -225,9 +215,11 @@ show_emmc_info() {
         local status=${STATUS_MAP[$status_key]}
         local status_color=${STATUS_COLOR[$status]}
         
-        print_color "健康状态:   [$status_key] ${status_color}${status}${NC}" "$WHITE"
+        # 修复健康状态显示，确保颜色正确
+        echo -n "健康状态:   [$status_key] "
+        echo -e "${status_color}${status}${NC}"
         
-        # 显示进度条
+        # 显示进度条（无颜色）
         echo ""
         show_progress_bar $percentage
         echo ""
