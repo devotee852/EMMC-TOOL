@@ -49,8 +49,8 @@ find_emmc_device() {
                 # 如果找到life_time文件，则直接使用
                 if [ -f "$device/device/life_time" ]; then
                     found_device="$device_name"
-                    echo -e "${GREEN}✓ 找到EMMC设备: /dev/$device_name${NC}" >&2
-                    echo -e "${BLUE}  路径: $device/device/life_time${NC}" >&2
+                    echo -e "${GREEN}✓ 找到EMMC设备: /dev/$device_name${NC}\n" >&2
+                    
                     break
                 else
                     # 如果没有life_time文件，但可能是EMMC设备，检查设备类型
@@ -553,7 +553,6 @@ run_detection() {
     show_progress_bar "$used_percent" "$used_status"
     
     echo -e "\n${GREEN}════════════ 检测完成 ═════════════${NC}"
-    echo -e "${WHITE}设备: /dev/$EMMC_DEVICE${NC}"
     echo -e "${WHITE}当前状态: ${YELLOW}$used_status${NC}"
     
     # 建议
