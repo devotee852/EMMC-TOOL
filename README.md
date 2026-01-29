@@ -1,0 +1,2 @@
+# EMMC-TOOL
+EMMC寿命检测工具
