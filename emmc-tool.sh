@@ -49,8 +49,8 @@ find_emmc_device() {
                 # 如果找到life_time文件，则直接使用
                 if [ -f "$device/device/life_time" ]; then
                     found_device="$device_name"
-                    echo -e "${GREEN}✓ 找到EMMC设备: /dev/$device_name${NC}\n" >&2
-                    
+                    echo -e "${GREEN}✓ 找到EMMC设备: /dev/$device_name${NC}" >&2
+                    # 已去除路径显示
                     break
                 else
                     # 如果没有life_time文件，但可能是EMMC设备，检查设备类型
@@ -502,7 +502,7 @@ run_detection() {
     
     # 获取设备信息
     echo -e "\n${GREEN}════════════ 设备信息 ═════════════${NC}"
-    echo -e "${WHITE}设备路径: /dev/$EMMC_DEVICE${NC}"
+    # 已去除设备路径显示
     
     IFS=$'\n' read -r -d '' -a device_info < <(get_device_info "$EMMC_DEVICE")
     for info in "${device_info[@]}"; do
@@ -519,7 +519,7 @@ run_detection() {
         exit 1
     fi
     
-    echo -e "${WHITE}读取到的值: ${YELLOW}$life_time${NC}"
+    # 已去除读取到的值显示
     
     # 解析寿命值
     IFS=' ' read -r used_life total_life <<< "$life_time"
@@ -553,6 +553,7 @@ run_detection() {
     show_progress_bar "$used_percent" "$used_status"
     
     echo -e "\n${GREEN}════════════ 检测完成 ═════════════${NC}"
+    # 已去除设备显示
     echo -e "${WHITE}当前状态: ${YELLOW}$used_status${NC}"
     
     # 建议
