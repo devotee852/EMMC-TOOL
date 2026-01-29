@@ -468,35 +468,6 @@ show_progress_bar() {
     echo -ne "${WHITE}] ${percent}%${NC}\n"
 }
 
-# 显示寿命表格
-show_life_table() {
-    echo -e "\n${CYAN}┌─────────────────────────────────────────────┐${NC}"
-    echo -e "${CYAN}│${WHITE}        EMMC寿命参考表                     ${CYAN}│${NC}"
-    echo -e "${CYAN}├─────────┬──────────┬─────────────────────┤${NC}"
-    echo -e "${CYAN}│${WHITE}  值     ${CYAN}│${WHITE}  使用率   ${CYAN}│${WHITE}       状态         ${CYAN}│${NC}"
-    echo -e "${CYAN}├─────────┼──────────┼─────────────────────┤${NC}"
-    
-    local -A table=(
-        ["0x01"]="0-10%      正常"
-        ["0x02"]="10-20%     正常"
-        ["0x03"]="20-30%     正常"
-        ["0x04"]="30-40%     正常"
-        ["0x05"]="40-50%     正常"
-        ["0x06"]="50-60%     一般"
-        ["0x07"]="60-70%     注意"
-        ["0x08"]="70-80%     需关注"
-        ["0x09"]="80-90%     高风险"
-        ["0x0A"]="90-100%    即将耗尽"
-        ["0x0B"]="≥100%      寿命已耗尽"
-    )
-    
-    for key in "${!table[@]}"; do
-        IFS=' ' read -r -a parts <<< "${table[$key]}"
-        echo -e "${CYAN}│${WHITE} $key     ${CYAN}│${WHITE} ${parts[0]}   ${CYAN}│${WHITE} ${parts[1]}     ${CYAN}│${NC}"
-    done
-    
-    echo -e "${CYAN}└─────────┴──────────┴─────────────────────┘${NC}"
-}
 
 # 运行检测
 run_detection() {
@@ -548,8 +519,7 @@ run_detection() {
         echo -e "${YELLOW}请检查文件权限或设备状态${NC}"
         exit 1
     fi
-    
-    echo -e "${WHITE}读取到的值: ${YELLOW}$life_time${NC}"
+
     
     # 解析寿命值
     IFS=' ' read -r used_life total_life <<< "$life_time"
@@ -586,20 +556,19 @@ run_detection() {
     show_life_table
     
     echo -e "\n${GREEN}════════════ 检测完成 ═════════════${NC}"
-    echo -e "${WHITE}设备: /dev/$EMMC_DEVICE${NC}"
     echo -e "${WHITE}当前状态: ${YELLOW}$used_status${NC}"
     
     # 建议
     if [[ "$used_life" == "0x0A" ]] || [[ "$used_life" == "0x0B" ]]; then
-        echo -e "${RED}⚠️  警告: EMMC寿命即将耗尽，建议立即备份重要数据并更换设备${NC}"
+        echo -e "${RED}⚠️  【警告: EMMC寿命即将耗尽，建议立即备份重要数据并更换设备】${NC}"
     elif [[ "$used_life" == "0x08" ]] || [[ "$used_life" == "0x09" ]]; then
-        echo -e "${YELLOW}⚠️  注意: EMMC寿命已消耗较多，建议关注设备健康并定期备份数据${NC}"
+        echo -e "${YELLOW}⚠️  【注意: EMMC寿命已消耗较多，建议关注设备健康并定期备份数据】${NC}"
     elif [[ "$used_life" == "0x07" ]]; then
-        echo -e "${YELLOW}⚠️  提示: EMMC寿命消耗较多，建议关注设备使用情况${NC}"
+        echo -e "${YELLOW}⚠️  【提示: EMMC寿命消耗较多，建议关注设备使用情况】${NC}"
     elif [[ "$used_life" == "0x06" ]]; then
-        echo -e "${BLUE}提示: EMMC寿命使用过半，建议适当关注${NC}"
+        echo -e "${BLUE}【提示: EMMC寿命使用过半，建议适当关注】${NC}"
     else
-        echo -e "${GREEN}✓ EMMC寿命状态良好${NC}"
+        echo -e "${GREEN}✓ 【EMMC寿命状态良好】${NC}"
     fi
     
     echo -e "\n${WHITE}按Enter键继续...${NC}"
